@@ -13,6 +13,7 @@ namespace Tasks_Test
 
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
+           //Run the tasks, note as they are not called async the Task.Run method returns immediately so they all will start 
             var longTask = Task.Run(() => LongTask(cancellationTokenSource.Token));
             var periodicToggler = Task.Run(() => PeriodicToggler(cancellationTokenSource.Token));
             var exitListener = Task.Run(() => ExitListener(cancellationTokenSource));
@@ -35,25 +36,29 @@ namespace Tasks_Test
             do
             {
                 cki = Console.ReadKey();
+
+                //Put this thread to sleep as there is no need to constanly process
+                Thread.Sleep(50);
             }
             while (cki.Key != ConsoleKey.Escape);
+            
+            //Escape key pressed, send the cancellation request to any tasks that might be cancellable
             cancellationTokenSource.Cancel();
 
         }
 
         static async Task LongTask(CancellationToken cancellationToken)
         {
-            long j = 0;
+            //Not doing anything here other than running up the CPU
             for (long i = 0; i < 200E7; i++)
             {
-                
+                //Check to see if the cancellation has been requested
                 if (cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }
-               
-                j++;
             }
+
             Console.WriteLine("Done Long task");
         }
 
@@ -66,6 +71,7 @@ namespace Tasks_Test
 
             while (true)
             {
+                //Check to see if the cancellation has been requested
                 if (cancellationToken.IsCancellationRequested)
                 {
                     return;
@@ -77,8 +83,10 @@ namespace Tasks_Test
                     Console.WriteLine($"{b}");
                     b = !b;
                 }
-
-
+                
+                //Put this thread to sleep as there is no need to constanly process
+                Thread.Sleep(50);
+            
             }
         }
 
