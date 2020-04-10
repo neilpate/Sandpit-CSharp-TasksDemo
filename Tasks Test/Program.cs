@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Tasks_Test
@@ -10,27 +11,53 @@ namespace Tasks_Test
         {
             Console.WriteLine("Hello World!");
 
-            Task.Run(LongTask);
-            Task.Run(PeriodicToggler);
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+            var longTask = Task.Run(() => LongTask(cancellationTokenSource.Token));
+            var periodicToggler = Task.Run(() => PeriodicToggler(cancellationTokenSource.Token));
+            var exitListener = Task.Run(() => ExitListener(cancellationTokenSource));
 
             while (true)
             {
-
+            
+                //Check to see if the cancellation has been requested
+                if (cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    return;
+                }
             }
 
         }
 
-        static async Task LongTask()
+        static async Task ExitListener(CancellationTokenSource cancellationTokenSource)
+        {
+            ConsoleKeyInfo cki;
+            do
+            {
+                cki = Console.ReadKey();
+            }
+            while (cki.Key != ConsoleKey.Escape);
+            cancellationTokenSource.Cancel();
+
+        }
+
+        static async Task LongTask(CancellationToken cancellationToken)
         {
             long j = 0;
             for (long i = 0; i < 200E7; i++)
             {
+                
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+               
                 j++;
             }
             Console.WriteLine("Done Long task");
         }
 
-        static async Task PeriodicToggler()
+        static async Task PeriodicToggler(CancellationToken cancellationToken)
         {
             bool b = false;
             var stopwatch = new Stopwatch();
@@ -39,6 +66,11 @@ namespace Tasks_Test
 
             while (true)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 if (stopwatch.ElapsedMilliseconds > 1000)
                 {
                     stopwatch.Restart();
@@ -49,6 +81,9 @@ namespace Tasks_Test
 
             }
         }
+
+
+
 
 
     }
